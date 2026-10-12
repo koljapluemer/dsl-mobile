@@ -1,0 +1,16 @@
+"junico money on my account" finishable (next "check ELSTER Zugang") 
+"stretch b4 going to sleep" iterable d 1 0.3 reconsider m 2
+"define what CRM should do" think context "sketch" prio 7
+"publish 25 collages" kill iterable w 1 0.5
+"thesis" pillar prio 3  
+"establish seated meditation as standard thing" goal iterable w 1 0.6 reconsider m 3
+
+"xHain?" appointment raincheck 7 date 26-10-12
+"ticket bill" appointment raincheck date 26-10-08
+"Einschreibungen finalisieren" deadline date 26-10-08
+"friend visit" appointment 26-10-10
+"paper on wall w/ routine setup visible, useful and honored?" goal iterable m 1
+"birthday R" yearly 11-02
+
+
+"lecture 4pm D139" weekly mo until 27-03-01 

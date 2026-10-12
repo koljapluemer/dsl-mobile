@@ -1,0 +1,27 @@
+name: dsl_edit
+description: "Add, edit and delete items in the items folder."
+publish_to: 'none'
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dsl:
+    path: ../../packages/dsl
+  file_picker: ^10.3.10
+  media_kit: ^1.2.6
+  pasteboard: ^0.5.0
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  shared_preferences: ^2.5.5
+
+flutter:
+  uses-material-design: true

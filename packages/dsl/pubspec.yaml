@@ -1,0 +1,31 @@
+name: dsl
+description: "The item language from ../dsl, plus what the dsl-mobile apps share: folder scan, cache, media widgets."
+publish_to: 'none'
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  file_picker: ^10.3.10
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.3
+  shared_preferences: ^2.5.5
+  yaml: ^3.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    # Vendored from the dsl repo — refresh with `just sync-spec`.
+    - assets/keywords.yaml

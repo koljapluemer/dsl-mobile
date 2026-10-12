@@ -1,0 +1,11 @@
+name: dsl_mobile_workspace
+publish_to: 'none'
+
+environment:
+  sdk: ^3.12.2
+
+workspace:
+  - packages/dsl
+  - apps/queue
+  - apps/calendar
+  - apps/edit
