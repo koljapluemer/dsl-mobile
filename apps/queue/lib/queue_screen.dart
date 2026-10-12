@@ -76,7 +76,7 @@ class _QueueScreenState extends State<QueueScreen> {
     final folder = repo.folderPath!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Queue'),
+        title: const Text('queue'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),

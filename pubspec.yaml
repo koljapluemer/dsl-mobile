@@ -8,4 +8,4 @@ workspace:
   - packages/dsl
   - apps/queue
   - apps/calendar
-  - apps/edit
+  - apps/note

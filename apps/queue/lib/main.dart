@@ -8,7 +8,7 @@ void main() {
   final repository = FolderRepository(cached: true);
   runApp(
     DslApp(
-      title: 'Queue',
+      title: 'queue',
       repository: repository,
       writes: false,
       home: (_) => QueueScreen(repository: repository),

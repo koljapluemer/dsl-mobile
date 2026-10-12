@@ -1,4 +1,4 @@
-# Apps live in apps/<app>: queue, calendar, edit.
+# Apps live in apps/<app>: queue, calendar, note.
 
 default:
     @just --list
@@ -30,14 +30,25 @@ apk app:
     cd apps/{{app}} && flutter build apk --debug
     cd apps/{{app}}/build/app/outputs/flutter-apk && exec $SHELL
 
+# Regenerate an app's icons (desktop/favicon set in icons/, Android launcher icons) from its emoji (needs ../scripts)
+icons app:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{app}}" in
+        queue) emoji=🎲 ;;
+        calendar) emoji=📆 ;;
+        note) emoji=📝 ;;
+        *) echo "unknown app: {{app}}" >&2; exit 1 ;;
+    esac
+    uv run --project ../scripts ../scripts/emoji-icons/run.py "$emoji" apps/{{app}}/icons \
+        --name {{app}} --android-res apps/{{app}}/android/app/src/main/res
+
 # Build an app's Linux release bundle and (re)install it into ~/.local, with a desktop entry
 reinstall app:
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{app}}" in
-        queue) name=Queue ;;
-        calendar) name=Calendar ;;
-        edit) name=Items ;;
+        queue|calendar|note) name={{app}} ;;
         *) echo "unknown app: {{app}}" >&2; exit 1 ;;
     esac
     id=com.koljasam.dsl_{{app}}

@@ -8,7 +8,7 @@ void main() {
   final repository = CalendarRepository();
   runApp(
     DslApp(
-      title: 'Calendar',
+      title: 'calendar',
       repository: repository,
       writes: false,
       home: (_) => HomeShell(repository: repository),

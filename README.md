@@ -6,9 +6,9 @@ you pick. Targets Android (sideload) and Linux desktop.
 
 | App | Dir | Label / ID | What it does |
 | --- | --- | --- | --- |
-| queue | `apps/queue` | Queue, `com.koljasam.dsl_queue` | Three random items from the whole folder, "Next" for others. Read-only. |
-| calendar | `apps/calendar` | Calendar, `com.koljasam.dsl_calendar` | Items per day / per date range (`appointment`, `recurring`). Read-only. See [its data-format notes](apps/calendar/docs/data-format.md). |
-| edit | `apps/edit` | Items, `com.koljasam.dsl_edit` | Add, edit and delete items as plain text, with highlighting and lint. |
+| queue | `apps/queue` | queue 🎲, `com.koljasam.dsl_queue` | Three random items from the whole folder, "Next" for others. Read-only. |
+| calendar | `apps/calendar` | calendar 📆, `com.koljasam.dsl_calendar` | Items per day / per date range (`appointment`, `recurring`). Read-only. See [its data-format notes](apps/calendar/docs/data-format.md). |
+| note | `apps/note` | note 📝, `com.koljasam.dsl_note` | Add, edit and delete items as plain text, with highlighting and lint. |
 
 Each app is its own Flutter project with its own Android/Linux runner, so all
 three install side by side. They share `packages/dsl` through a
@@ -31,11 +31,12 @@ the root).
 ```bash
 flutter pub get          # once, at the root
 just dev queue           # run an app on the desktop
-just apk edit            # debug APK, drops you into its output dir
+just apk note            # debug APK, drops you into its output dir
 just reinstall calendar  # release Linux bundle into ~/.local + desktop entry
 just test                # all tests
 just analyze
 just sync-spec           # after a change in ../dsl
+just icons queue         # regenerate an app's icons from its emoji (../scripts/emoji-icons)
 ```
 
 Install a built APK: `adb install -r apps/<app>/build/app/outputs/flutter-apk/app-debug.apk`
@@ -52,7 +53,7 @@ isolate. A rescan re-reads only files whose modification time or size changed.
 - **queue** and **calendar** keep the last scan in a cache file in app storage
   (`items-cache.json`, raw text per file, reparsed with the current schema) and
   show it on start until the fresh scan lands. The refresh button rescans.
-- **edit** keeps no cache. It opens on the Add screen while the folder loads.
+- **note** keeps no cache. It opens on the Add screen while the folder loads.
   The editor always starts from the file's current text on disk, not from the
   scan.
 
@@ -70,7 +71,7 @@ isolate. A rescan re-reads only files whose modification time or size changed.
 - `widgets/`: app bootstrap (`DslApp`), settings screen, refresh button, media
   preview and viewers.
 
-## edit: writing files
+## note: writing files
 
 - New files are named `<slug of the first line>-<6 hex>.txt`. The name never
   changes afterwards, because other items refer to it (`-> label @name`).
