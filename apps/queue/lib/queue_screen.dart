@@ -137,9 +137,9 @@ class _QueueScreenState extends State<QueueScreen> {
   }
 }
 
-/// One item: its body, its attachment, and its extra content behind a
-/// toggle. Keyword lines and relationships aren't shown. A file that isn't a
-/// valid item is shown as its raw text, marked invalid.
+/// One item: its body, its attachment, and its extra content in a box in
+/// smaller type. Keyword lines and relationships aren't shown. A file that
+/// isn't a valid item is shown as its raw text, marked invalid.
 class _ItemCard extends StatelessWidget {
   const _ItemCard({super.key, required this.item, required this.folder});
 
@@ -175,18 +175,23 @@ class _ItemCard extends StatelessWidget {
           const SizedBox(height: 12),
           MediaPreview(path: media),
         ],
-        if (extra != null)
-          Theme(
-            // No divider lines around the expander.
-            data: theme.copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: Text('More', style: theme.textTheme.labelLarge),
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(bottom: 8),
-              expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [MarkdownBody(data: extra, softLineBreak: true)],
+        if (extra != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: MarkdownBody(
+              data: extra,
+              softLineBreak: true,
+              styleSheet: MarkdownStyleSheet.fromTheme(
+                theme,
+              ).copyWith(textScaler: const TextScaler.linear(0.75)),
             ),
           ),
+        ],
       ],
     );
   }
