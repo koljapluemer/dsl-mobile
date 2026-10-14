@@ -1,7 +1,10 @@
 import 'package:yaml/yaml.dart';
 
 /// The value types from the dsl spec's `language.md`.
-enum ValueType { date, month, weekday, path }
+enum ValueType { date, month, weekday, path, text }
+
+/// How a block keyword's content is read (`block` in `keywords.yaml`).
+enum BlockKind { text, yaml }
 
 /// A keyword's `role` in `keywords.yaml`.
 enum Role {
@@ -38,6 +41,7 @@ class KeywordSpec {
     this.args = const [],
     this.options = const {},
     this.excludes = const {},
+    this.block,
   });
 
   final String name;
@@ -47,6 +51,9 @@ class KeywordSpec {
   final List<ValueSpec> args;
   final Map<String, ValueSpec> options;
   final Set<String> excludes;
+
+  /// Set for keywords holding a multi-line block (`data`, `extra`).
+  final BlockKind? block;
 }
 
 /// The dsl repo's `spec/keywords.yaml`, which the parser reads instead of
@@ -86,6 +93,13 @@ class Schema {
     final args = (map['args'] as YamlList?) ?? YamlList();
     final options = (map['options'] as YamlMap?) ?? YamlMap();
     final excludes = (map['excludes'] as YamlList?) ?? YamlList();
+    final blockName = map['block'];
+    final block = blockName == null
+        ? null
+        : BlockKind.values.where((b) => b.name == blockName).firstOrNull;
+    if (blockName != null && block == null) {
+      throw FormatException('Keyword "$name" has an invalid block: $blockName');
+    }
     return KeywordSpec(
       name: name,
       role: role,
@@ -101,6 +115,7 @@ class Schema {
           ),
       },
       excludes: {...excludes.cast<String>()},
+      block: block,
     );
   }
 

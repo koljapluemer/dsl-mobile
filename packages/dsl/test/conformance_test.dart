@@ -39,6 +39,7 @@ Map<String, Object?> _result(Document doc) => {
   'state': [for (final c in doc.state) _clause(c)],
   'unknown': doc.unknownLines,
   'extra': doc.extra?.join('\n'),
+  'data': doc.dataValue,
   'errors': _diagnostics(doc.errors),
   'warnings': _diagnostics(doc.warnings),
 };

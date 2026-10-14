@@ -51,7 +51,7 @@ TextEdit? removeClause(Schema schema, String text, String keyword) {
   );
 }
 
-/// Adds the extra marker at the end when there is none; the cursor goes to
+/// Adds the `extra` keyword at the end when there is none; the cursor goes to
 /// the end of the text, where the extra content is typed.
 TextEdit ensureExtra(Schema schema, String text) {
   if (parseDocument(schema, text).extraMarker != null) {
@@ -63,11 +63,15 @@ TextEdit ensureExtra(Schema schema, String text) {
 }
 
 /// The keyword-section line (0-based) whose first token is [keyword], unless
-/// another clause shares it.
+/// another clause shares it. Lines inside blocks are skipped.
 int? _ownLine(Document doc, List<String> lines, String keyword) {
-  final end = doc.extraMarker ?? lines.length;
   final starts = RegExp('^${RegExp.escape(keyword)}(?=\\s|\$)');
-  for (var i = doc.sectionStart; i < end; i++) {
+  for (var i = doc.sectionStart; i < lines.length; i++) {
+    final block = doc.blocks.where((b) => b.line == i).firstOrNull;
+    if (block != null) {
+      i = block.end - 1;
+      continue;
+    }
     if (!starts.hasMatch(lines[i].trim())) continue;
     final shared = doc.clauses.any(
       (c) => c.line == i + 1 && c.keyword != keyword,
@@ -78,9 +82,9 @@ int? _ownLine(Document doc, List<String> lines, String keyword) {
 }
 
 /// Where a new keyword line goes: after the last non-blank line before the
-/// extra marker (or the end of the file).
+/// first block (or the end of the file).
 int _sectionEnd(Document doc, List<String> lines) {
-  var end = doc.extraMarker ?? lines.length;
+  var end = doc.firstBlock ?? lines.length;
   while (end > 0 && lines[end - 1].trim().isEmpty) {
     end--;
   }

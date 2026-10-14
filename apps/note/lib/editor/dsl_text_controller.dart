@@ -84,7 +84,7 @@ class DslTextController extends TextEditingController {
   }
 
   static TextStyle _style(SpanKind kind, ColorScheme colors) => switch (kind) {
-    SpanKind.primary || SpanKind.property || SpanKind.extraMarker => TextStyle(
+    SpanKind.primary || SpanKind.property || SpanKind.blockMarker => TextStyle(
       color: colors.primary,
       fontWeight: FontWeight.bold,
     ),
@@ -97,7 +97,8 @@ class DslTextController extends TextEditingController {
     SpanKind.month ||
     SpanKind.weekday ||
     SpanKind.path => TextStyle(color: colors.tertiary),
+    SpanKind.text => TextStyle(color: colors.onSurface),
     SpanKind.relation || SpanKind.target => TextStyle(color: colors.secondary),
-    SpanKind.extra => TextStyle(color: colors.onSurfaceVariant),
+    SpanKind.block => TextStyle(color: colors.onSurfaceVariant),
   };
 }

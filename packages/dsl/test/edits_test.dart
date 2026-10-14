@@ -105,5 +105,21 @@ void main() {
   test('ensureExtra', () {
     expect(ensureExtra(_schema, 'Note\n\n').text, 'Note\nextra\n');
     expect(ensureExtra(_schema, 'Note\nextra\nx\n').text, 'Note\nextra\nx\n');
+    expect(
+      ensureExtra(_schema, 'Note\ndata\na: 1\n').text,
+      'Note\ndata\na: 1\nextra\n',
+    );
+  });
+
+  test('setClause finds its line after a block and adds before the first', () {
+    final after = 'x\ndata\na: 1\nmedia a.png\n';
+    expect(
+      setClause(_schema, after, 'media', 'media b.png').text,
+      'x\ndata\na: 1\nmedia b.png\n',
+    );
+    expect(
+      setClause(_schema, 'x\ndata\nappointment: 1\n', 'appointment', 'appointment 26-10-12').text,
+      'x\nappointment 26-10-12\ndata\nappointment: 1\n',
+    );
   });
 }

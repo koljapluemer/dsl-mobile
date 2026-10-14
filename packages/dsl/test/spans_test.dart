@@ -37,8 +37,8 @@ void main() {
         'path:"images/a b.webp"',
         'relation:->',
         'target:@collection-ffffff',
-        'extraMarker:extra',
-        'extra:Details.\n',
+        'blockMarker:extra',
+        'block:Details.\n',
       ],
     );
   });

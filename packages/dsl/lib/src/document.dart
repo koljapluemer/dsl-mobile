@@ -1,3 +1,5 @@
+import 'package:yaml/yaml.dart';
+
 import 'date_only.dart';
 import 'schema.dart';
 
@@ -35,6 +37,11 @@ class WeekdayValue extends Value {
 /// A file path relative to the item's folder.
 class PathValue extends Value {
   const PathValue(super.text);
+}
+
+/// The rest of the line, for a `text` argument.
+class TextValue extends Value {
+  const TextValue(super.text);
 }
 
 /// One `keyword arg* (option value)*` clause from the keyword section, or the
@@ -79,6 +86,8 @@ enum DiagnosticCode {
   invalidRelation('invalid_relation'),
   invalidState('invalid_state'),
   emptyExtra('empty_extra'),
+  emptyData('empty_data'),
+  invalidYaml('invalid_yaml'),
   unknownKeyword('unknown_keyword', isError: false);
 
   const DiagnosticCode(this.code, {this.isError = true});
@@ -124,14 +133,19 @@ enum SpanKind {
   month,
   weekday,
   path,
+  text,
 
   /// The `->` of a relationship line.
   relation,
 
   /// A relationship's `@target`.
   target,
-  extraMarker,
-  extra,
+
+  /// A block keyword (`data`, `extra`).
+  blockMarker,
+
+  /// A block's content.
+  block,
 
   /// An unknown keyword and the rest of its line, or a whole unknown state
   /// line.
@@ -147,6 +161,16 @@ class Span {
   final SpanKind kind;
 }
 
+/// A block keyword and its content: [line] is the keyword's 0-based line,
+/// [end] the 0-based line after the content.
+class BlockRange {
+  const BlockRange(this.keyword, this.line, this.end);
+
+  final String keyword;
+  final int line;
+  final int end;
+}
+
 /// A file parsed per the dsl spec, before any frontend gives its keywords
 /// meaning. When [isValid] is false, [clauses] may be incomplete.
 class Document {
@@ -157,10 +181,12 @@ class Document {
     this.state = const [],
     this.unknownLines = const [],
     this.extra,
+    this.data,
+    this.dataValue,
+    this.blocks = const [],
     this.diagnostics = const [],
     this.spans = const [],
     this.sectionStart = 0,
-    this.extraMarker,
   });
 
   /// Verbatim body lines; blank lines inside kept. Empty only for an empty
@@ -175,21 +201,33 @@ class Document {
   /// lines, kept raw.
   final List<String> unknownLines;
 
-  /// Verbatim extra lines, or null when the file has no extra marker.
+  /// Verbatim `extra` lines, or null when the file has no `extra` block.
   final List<String>? extra;
+
+  /// Verbatim `data` lines, or null when the file has no `data` block.
+  final List<String>? data;
+
+  /// The `data` block as plain maps and lists; null when absent or invalid.
+  final Map<String, Object?>? dataValue;
+
+  /// Every block, in text order.
+  final List<BlockRange> blocks;
 
   final List<Diagnostic> diagnostics;
 
-  /// Keywords, options, values, relationships and the extra block, in text
-  /// order. Body lines have none.
+  /// Keywords, options, values, relationships and blocks, in text order. Body lines have none.
   final List<Span> spans;
 
   /// 0-based index of the line the keyword section starts at (the boundary),
   /// or the line count when there is none.
   final int sectionStart;
 
-  /// 0-based index of the extra marker line, or null.
-  final int? extraMarker;
+  /// 0-based index of the `extra` keyword's line, or null.
+  int? get extraMarker =>
+      blocks.where((b) => b.keyword == 'extra').firstOrNull?.line;
+
+  /// 0-based index of the first block keyword's line, or null.
+  int? get firstBlock => blocks.firstOrNull?.line;
 
   Iterable<Diagnostic> get errors => diagnostics.where((d) => d.code.isError);
   Iterable<Diagnostic> get warnings =>
@@ -200,25 +238,41 @@ class Document {
       clauses.where((c) => c.keyword == keyword).firstOrNull;
 }
 
-const _extraMarker = 'extra';
 final _keywordToken = RegExp(r'^[a-z]+$');
 final _keywordOpener = RegExp(r'^([a-z]+)(?=\s|$)');
 final _stateOpener = RegExp(r'^\(([a-z]+)(?=[\s)]|$)');
 final _relationOpener = RegExp(r'^->\s');
 
-bool _isExtraMarker(String line) => line.trimRight() == _extraMarker;
+/// The block keyword a line consists of, or null.
+String? _blockKeyword(Schema schema, String line) {
+  final name = line.trimRight();
+  return schema.keywords[name]?.block == null ? null : name;
+}
 
-/// Whether a body line (other than the first) starts the keyword section.
-bool _isSectionOpener(Schema schema, String line) {
-  if (_isExtraMarker(line)) return true;
+/// Whether a line at column 0 is a keyword, relationship or state line whose
+/// keyword role passes [roleCounts]. Block keywords count only alone on their
+/// line.
+bool _startsLine(Schema schema, String line, bool Function(Role) roleCounts) {
   if (_relationOpener.hasMatch(line)) {
     return line.trim().split(RegExp(r'\s+')).last.startsWith('@');
   }
   final state = _stateOpener.firstMatch(line)?.group(1);
-  if (state != null) return schema.keywords[state]?.role == Role.state;
+  if (state != null) {
+    return schema.keywords[state]?.role == Role.state && roleCounts(Role.state);
+  }
   final keyword = _keywordOpener.firstMatch(line)?.group(1);
-  return schema.keywords[keyword]?.role.opensSection ?? false;
+  final spec = schema.keywords[keyword];
+  if (spec == null || !roleCounts(spec.role)) return false;
+  return spec.block == null || line.trimRight() == keyword;
 }
+
+/// Whether a body line (other than the first) starts the keyword section.
+bool _isSectionOpener(Schema schema, String line) =>
+    _startsLine(schema, line, (r) => r.opensSection);
+
+/// Whether a line terminates a block.
+bool _endsBlock(Schema schema, String line) =>
+    _startsLine(schema, line, (_) => true);
 
 /// Parses one item file. Never throws — problems become [Diagnostic]s.
 Document parseDocument(Schema schema, String text) {
@@ -241,33 +295,34 @@ Document parseDocument(Schema schema, String text) {
     first + 1,
     (l) => _isSectionOpener(schema, l),
   );
-  final marker = _indexFrom(lines, boundary, _isExtraMarker);
 
   final parser = _SectionParser(schema);
-  for (var i = boundary; i < marker; i++) {
-    parser.parseLine(lines[i], i + 1, starts[i]);
+  final blocks = <BlockRange>[];
+  final contents = <String, List<String>>{};
+  var i = boundary;
+  while (i < lines.length) {
+    final keyword = _blockKeyword(schema, lines[i]);
+    if (keyword == null) {
+      parser.parseLine(lines[i], i + 1, starts[i]);
+      i++;
+      continue;
+    }
+    final end = _indexFrom(lines, i + 1, (l) => _endsBlock(schema, l));
+    final keywordEnd = starts[i] + lines[i].trimRight().length;
+    blocks.add(BlockRange(keyword, i, end));
+    parser.spans.add(Span(starts[i], keywordEnd, SpanKind.blockMarker));
+    if (parser.claimBlock(keyword, i + 1, starts[i], keywordEnd)) {
+      final content = _trimBlankEnds(lines.sublist(i + 1, end));
+      contents[keyword] = content;
+      parser.checkBlock(keyword, content, i + 1, starts[i], keywordEnd);
+      if (content.isNotEmpty) {
+        final to = end < lines.length ? starts[end] - 1 : text.length;
+        parser.spans.add(Span(starts[i + 1], to, SpanKind.block));
+      }
+    }
+    i = end;
   }
   parser.checkExcludes();
-
-  List<String>? extra;
-  if (marker < lines.length) {
-    final markerEnd = starts[marker] + lines[marker].trimRight().length;
-    parser.spans.add(Span(starts[marker], markerEnd, SpanKind.extraMarker));
-    extra = _trimBlankEnds(lines.sublist(marker + 1));
-    if (extra.isEmpty) {
-      parser.diagnostics.add(
-        Diagnostic(
-          DiagnosticCode.emptyExtra,
-          line: marker + 1,
-          detail: _extraMarker,
-          from: starts[marker],
-          to: markerEnd,
-        ),
-      );
-    } else {
-      parser.spans.add(Span(starts[marker + 1], text.length, SpanKind.extra));
-    }
-  }
 
   return Document(
     body: _trimBlankEnds(lines.sublist(first, boundary)),
@@ -275,11 +330,13 @@ Document parseDocument(Schema schema, String text) {
     relations: parser.relations,
     state: parser.state,
     unknownLines: parser.unknownLines,
-    extra: extra,
+    extra: contents['extra'],
+    data: contents['data'],
+    dataValue: parser.dataValue,
+    blocks: blocks,
     diagnostics: parser.diagnostics,
     spans: parser.spans,
     sectionStart: boundary,
-    extraMarker: marker < lines.length ? marker : null,
   );
 }
 
@@ -363,6 +420,9 @@ class _SectionParser {
   final spans = <Span>[];
   final _seen = <String>{};
 
+  /// The parsed `data` block, when it is a valid mapping.
+  Map<String, Object?>? dataValue;
+
   /// Offsets of each of [clauses]' keyword token, for [checkExcludes].
   final _clauseKeywords = <(int, int)>[];
 
@@ -372,6 +432,37 @@ class _SectionParser {
 
   bool _isKnownKeyword(_Token t) =>
       !t.quoted && schema.keywords.containsKey(t.text);
+
+  /// Registers a block keyword; false (with an error) when it appeared before.
+  bool claimBlock(String keyword, int lineNo, int from, int to) {
+    if (_seen.add(keyword)) return true;
+    _error(DiagnosticCode.duplicateKeyword, lineNo, keyword, from, to);
+    return false;
+  }
+
+  /// Reports an empty block, or a `yaml` block that isn't a YAML mapping.
+  void checkBlock(
+    String keyword,
+    List<String> content,
+    int lineNo,
+    int from,
+    int to,
+  ) {
+    final kind = schema.keywords[keyword]!.block!;
+    if (content.isEmpty) {
+      final code = kind == BlockKind.yaml
+          ? DiagnosticCode.emptyData
+          : DiagnosticCode.emptyExtra;
+      _error(code, lineNo, keyword, from, to);
+    } else if (kind == BlockKind.yaml) {
+      final value = _yamlMapping(content.join('\n'));
+      if (value == null) {
+        _error(DiagnosticCode.invalidYaml, lineNo, keyword, from, to);
+      } else if (keyword == 'data') {
+        dataValue = value;
+      }
+    }
+  }
 
   /// [lineStart] is the offset of [rawLine] in the text.
   void parseLine(String rawLine, int lineNo, int lineStart) {
@@ -435,7 +526,7 @@ class _SectionParser {
     }
     // Token offsets are relative to the text inside the parentheses.
     final base = _from + 1;
-    final parsed = _clause(tokens, 0, lineNo, base);
+    final parsed = _clause(tokens, 0, lineNo, base, line.substring(1, line.length - 1));
     if (parsed == null) return;
     if (parsed.next < tokens.length) {
       final t = tokens[parsed.next];
@@ -460,11 +551,11 @@ class _SectionParser {
         _unknown(line.substring(token.start), lineNo, token.text, from);
         return;
       }
-      if (spec.role == Role.state) {
+      if (spec.role == Role.state || spec.block != null) {
         _error(DiagnosticCode.unexpectedToken, lineNo, token.text, from);
         return;
       }
-      final parsed = _clause(tokens, i, lineNo, _from);
+      final parsed = _clause(tokens, i, lineNo, _from, line);
       if (parsed == null) return;
       clauses.add(parsed.clause);
       _clauseKeywords.add((from, _from + token.end));
@@ -474,12 +565,14 @@ class _SectionParser {
 
   /// The clause whose keyword is `tokens[i]`, and the index after it; null
   /// (with an error reported) when it's malformed. [base] is the offset in
-  /// the text that the tokens' offsets are relative to.
+  /// the text that the tokens' offsets are relative to, and [source] the
+  /// string the tokens were cut from.
   ({Clause clause, int next})? _clause(
     List<_Token> tokens,
     int i,
     int lineNo,
     int base,
+    String source,
   ) {
     final spec = schema.keywords[tokens[i].text]!;
     final keyword = tokens[i];
@@ -497,6 +590,29 @@ class _SectionParser {
 
     final args = <Value>[];
     for (final arg in spec.args) {
+      if (arg.types.length == 1 && arg.types.single == ValueType.text) {
+        if (i >= tokens.length) {
+          _error(
+            DiagnosticCode.missingArg,
+            lineNo,
+            spec.name,
+            base + keyword.start,
+            base + keyword.end,
+          );
+          return null;
+        }
+        final rest = source.substring(tokens[i].start).trim();
+        spans.add(
+          Span(
+            base + tokens[i].start,
+            base + tokens[i].start + rest.length,
+            SpanKind.text,
+          ),
+        );
+        args.add(TextValue(rest));
+        i = tokens.length;
+        continue;
+      }
       if (i >= tokens.length || _isKnownKeyword(tokens[i])) {
         _error(
           DiagnosticCode.missingArg,
@@ -608,6 +724,7 @@ class _SectionParser {
     MonthValue() => SpanKind.month,
     WeekdayValue() => SpanKind.weekday,
     PathValue() => SpanKind.path,
+    TextValue() => SpanKind.text,
   };
 
   /// By default the problem runs from [from] (the line's start) to the end
@@ -651,6 +768,7 @@ class _SectionParser {
         ValueType.month => _month(token.text),
         ValueType.weekday => _weekday(token.text),
         ValueType.path => _path(token.text),
+        ValueType.text => null,
       };
       if (value != null) return value;
     }
@@ -703,3 +821,20 @@ PathValue? _path(String text) {
       !text.split('/').contains('..');
   return valid ? PathValue(text) : null;
 }
+
+/// The YAML mapping in [text] as plain maps and lists, or null when it is not
+/// valid YAML or not a mapping.
+Map<String, Object?>? _yamlMapping(String text) {
+  try {
+    final value = _plain(loadYaml(text));
+    return value is Map<String, Object?> ? value : null;
+  } on YamlException {
+    return null;
+  }
+}
+
+Object? _plain(Object? node) => switch (node) {
+  YamlMap() => {for (final e in node.entries) '${e.key}': _plain(e.value)},
+  YamlList() => [for (final e in node) _plain(e)],
+  _ => node,
+};
