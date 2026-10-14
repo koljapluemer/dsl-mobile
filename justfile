@@ -23,6 +23,12 @@ analyze:
 
 # Run an app on the desktop with hot reload
 dev app:
+    @if ! command -v pkg-config >/dev/null || ! pkg-config --exists mpv; then \
+        echo "Missing Linux dependency: libmpv development files." >&2; \
+        echo "  Fedora: sudo dnf install mpv-libs-devel" >&2; \
+        echo "  Ubuntu: sudo apt install libmpv-dev" >&2; \
+        exit 1; \
+    fi
     cd apps/{{app}} && flutter run -d linux
 
 # Build an app's debug APK and drop into its output directory (e.g. to run adb install)
