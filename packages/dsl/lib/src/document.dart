@@ -44,6 +44,12 @@ class TextValue extends Value {
   const TextValue(super.text);
 }
 
+/// One tag of a `tags` argument, which takes the rest of the line and gives
+/// one value per tag.
+class TagValue extends Value {
+  const TagValue(super.text);
+}
+
 /// One `keyword arg* (option value)*` clause from the keyword section, or the
 /// clause of a `( … )` state line.
 class Clause {
@@ -134,6 +140,7 @@ enum SpanKind {
   weekday,
   path,
   text,
+  tags,
 
   /// The `->` of a relationship line.
   relation,
@@ -239,6 +246,7 @@ class Document {
 }
 
 final _keywordToken = RegExp(r'^[a-z]+$');
+final _tag = RegExp(r'^[a-z0-9-]+$');
 final _keywordOpener = RegExp(r'^([a-z]+)(?=\s|$)');
 final _stateOpener = RegExp(r'^\(([a-z]+)(?=[\s)]|$)');
 final _relationOpener = RegExp(r'^->\s');
@@ -551,7 +559,9 @@ class _SectionParser {
         _unknown(line.substring(token.start), lineNo, token.text, from);
         return;
       }
-      if (spec.role == Role.state || spec.block != null) {
+      if (spec.role == Role.state ||
+          spec.block != null ||
+          (i > 0 && spec.lineStart)) {
         _error(DiagnosticCode.unexpectedToken, lineNo, token.text, from);
         return;
       }
@@ -611,6 +621,33 @@ class _SectionParser {
         );
         args.add(TextValue(rest));
         i = tokens.length;
+        continue;
+      }
+      if (arg.types.length == 1 && arg.types.single == ValueType.tags) {
+        if (i >= tokens.length) {
+          _error(
+            DiagnosticCode.missingArg,
+            lineNo,
+            spec.name,
+            base + keyword.start,
+            base + keyword.end,
+          );
+          return null;
+        }
+        for (; i < tokens.length; i++) {
+          final token = tokens[i];
+          if (token.quoted || !_tag.hasMatch(token.text)) {
+            _error(
+              DiagnosticCode.invalidValue,
+              lineNo,
+              token.text,
+              base + token.start,
+            );
+            return null;
+          }
+          _span(token, base, SpanKind.tags);
+          args.add(TagValue(token.text));
+        }
         continue;
       }
       if (i >= tokens.length || _isKnownKeyword(tokens[i])) {
@@ -725,6 +762,7 @@ class _SectionParser {
     WeekdayValue() => SpanKind.weekday,
     PathValue() => SpanKind.path,
     TextValue() => SpanKind.text,
+    TagValue() => SpanKind.tags,
   };
 
   /// By default the problem runs from [from] (the line's start) to the end
@@ -768,7 +806,7 @@ class _SectionParser {
         ValueType.month => _month(token.text),
         ValueType.weekday => _weekday(token.text),
         ValueType.path => _path(token.text),
-        ValueType.text => null,
+        ValueType.text || ValueType.tags => null,
       };
       if (value != null) return value;
     }

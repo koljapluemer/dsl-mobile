@@ -98,7 +98,9 @@ class DslTextController extends TextEditingController {
     SpanKind.weekday ||
     SpanKind.path => TextStyle(color: colors.tertiary),
     SpanKind.text => TextStyle(color: colors.onSurface),
-    SpanKind.relation || SpanKind.target => TextStyle(color: colors.secondary),
+    SpanKind.relation ||
+    SpanKind.target ||
+    SpanKind.tags => TextStyle(color: colors.secondary),
     SpanKind.block => TextStyle(color: colors.onSurfaceVariant),
   };
 }

@@ -2,6 +2,7 @@ import 'package:path/path.dart' as p;
 
 import 'document.dart';
 import 'media.dart';
+import 'schema.dart';
 
 /// One `*.txt` file of the data folder, parsed.
 class ItemFile {
@@ -55,6 +56,17 @@ class ItemFile {
   }
 
   bool get hasVideo => isVideoFilename(media ?? '');
+
+  /// The item's type: its first `primary` keyword, or null for a plain note.
+  String? primaryKeyword(Schema schema) => doc.clauses
+      .where((c) => schema.keywords[c.keyword]?.role == Role.primary)
+      .firstOrNull
+      ?.keyword;
+
+  /// The tags of its `tags` line, in order; empty when it has none.
+  List<String> get tags => [
+    for (final value in doc.clause('tags')?.args ?? const <Value>[]) value.text,
+  ];
 
   /// The first body line, trimmed; or the file name when there is none.
   String get heading {

@@ -30,7 +30,7 @@ repo README). Folder loading, cache and refresh are shared with the other apps.
   sharing the folder, or a primary added to the schema later): the item is
   valid, but appears on no day and isn't kept in memory.
 - The first body line is the item's heading; the other body lines are shown
-  muted under it. Relationships, `media` and the `data` and `extra` blocks are ignored.
+  muted under it. Relationships, `media`, `tags` and the `data` and `extra` blocks are ignored.
 
 ## Problems
 

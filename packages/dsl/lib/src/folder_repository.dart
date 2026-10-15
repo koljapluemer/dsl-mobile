@@ -34,16 +34,20 @@ class FolderRepository extends ChangeNotifier {
   ItemCache? _cache;
 
   List<ItemFile> _items = [];
+  List<ItemFile> _visible = [];
 
   /// Changes made through [putItem]/[removeItem] while a scan runs: the scan
   /// may have listed the folder before them, so they're applied on top of
   /// its result. A null value is a removal.
   final Map<String, ItemFile?> _changedDuringLoad = {};
 
-  /// Every item file, sorted by name.
-  List<ItemFile> get items => _items;
+  /// Every item file the app shows ([isVisible]), sorted by name.
+  List<ItemFile> get items => _visible;
 
-  int get count => _items.length;
+  /// Every item file, sorted by name, including those [isVisible] hides.
+  List<ItemFile> get allItems => _items;
+
+  int get count => _visible.length;
 
   Future<void> init() async {
     schema = Schema.fromYaml(await rootBundle.loadString(_schemaAsset));
@@ -123,8 +127,9 @@ class FolderRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The shown item called [name], or null.
   ItemFile? itemNamed(String name) {
-    for (final item in _items) {
+    for (final item in _visible) {
       if (item.name == name) return item;
     }
     return null;
@@ -132,7 +137,24 @@ class FolderRepository extends ChangeNotifier {
 
   void _setItems(List<ItemFile> items) {
     _items = items..sort((a, b) => a.name.compareTo(b.name));
+    _filter();
+  }
+
+  void _filter() {
+    _visible = _items.where(isVisible).toList();
     didChangeItems();
+  }
+
+  /// Whether the app shows [item] at all; an item it hides is left out of
+  /// [items] and [count]. For subclasses that let the user hide items.
+  @protected
+  bool isVisible(ItemFile item) => true;
+
+  /// Re-applies [isVisible] after what it depends on changed.
+  @protected
+  void refilter() {
+    _filter();
+    notifyListeners();
   }
 
   /// Called whenever [items] changes, before listeners are notified; for

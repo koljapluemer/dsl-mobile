@@ -1,7 +1,7 @@
 import 'package:yaml/yaml.dart';
 
 /// The value types from the dsl spec's `language.md`.
-enum ValueType { date, month, weekday, path, text }
+enum ValueType { date, month, weekday, path, text, tags }
 
 /// How a block keyword's content is read (`block` in `keywords.yaml`).
 enum BlockKind { text, yaml }
@@ -42,6 +42,7 @@ class KeywordSpec {
     this.options = const {},
     this.excludes = const {},
     this.block,
+    this.lineStart = false,
   });
 
   final String name;
@@ -54,6 +55,9 @@ class KeywordSpec {
 
   /// Set for keywords holding a multi-line block (`data`, `extra`).
   final BlockKind? block;
+
+  /// Must be the first token of its line (`line_start`).
+  final bool lineStart;
 }
 
 /// The dsl repo's `spec/keywords.yaml`, which the parser reads instead of
@@ -116,6 +120,7 @@ class Schema {
       },
       excludes: {...excludes.cast<String>()},
       block: block,
+      lineStart: map['line_start'] == true,
     );
   }
 

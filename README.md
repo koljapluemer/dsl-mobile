@@ -6,7 +6,7 @@ you pick. Targets Android (sideload) and Linux desktop.
 
 | App | Dir | Label / ID | What it does |
 | --- | --- | --- | --- |
-| queue | `apps/queue` | queue 🎲, `com.koljasam.dsl_queue` | Three random items from the whole folder, "Next" for others. Read-only. |
+| queue | `apps/queue` | queue 🎲, `com.koljasam.dsl_queue` | Three random items from the whole folder, "Next" for others. Read-only. Settings hide items by type (primary keyword) or tag. |
 | calendar | `apps/calendar` | calendar 📆, `com.koljasam.dsl_calendar` | Items per day / per date range (`appointment`, `recurring`). Read-only. See [its data-format notes](apps/calendar/docs/data-format.md). |
 | note | `apps/note` | note 📝, `com.koljasam.dsl_note` | Add, edit and delete items as plain text, with highlighting and lint. |
 

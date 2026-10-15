@@ -4,13 +4,16 @@ import 'package:dsl/dsl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
-/// The app's one screen: a few random items from the whole folder, and a
-/// "Next" button to draw others. Read-only: nothing here writes to the
-/// folder.
+import 'blacklist_settings.dart';
+import 'queue_repository.dart';
+
+/// The app's one screen: a few random items from the whole folder (minus
+/// blacklisted ones), and a "Next" button to draw others. Read-only: nothing
+/// here writes to the folder.
 class QueueScreen extends StatefulWidget {
   const QueueScreen({super.key, required this.repository});
 
-  final FolderRepository repository;
+  final QueueRepository repository;
 
   @override
   State<QueueScreen> createState() => _QueueScreenState();
@@ -45,7 +48,8 @@ class _QueueScreenState extends State<QueueScreen> {
   }
 
   /// The first batch is drawn before the cache or a scan has items on a
-  /// first start; draw one once they arrive. A batch on screen stays.
+  /// first start; draw one once they arrive. A batch on screen stays, minus
+  /// items that were deleted or blacklisted since.
   void _onRepositoryChanged() {
     if (!mounted) return;
     setState(() {
@@ -63,7 +67,11 @@ class _QueueScreenState extends State<QueueScreen> {
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
           appBar: AppBar(title: const Text('Settings')),
-          body: SettingsScreen(repository: widget.repository, writes: false),
+          body: SettingsScreen(
+            repository: widget.repository,
+            writes: false,
+            sections: [BlacklistSettings(repository: widget.repository)],
+          ),
         ),
       ),
     );

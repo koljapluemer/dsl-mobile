@@ -13,12 +13,16 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.writes,
+    this.sections = const [],
   });
 
   final FolderRepository repository;
 
   /// Whether the app writes to the folder; only changes the permission text.
   final bool writes;
+
+  /// App-specific settings, shown below the folder controls.
+  final List<Widget> sections;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -88,6 +92,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: repo.isLoading ? null : repo.loadFromDisk,
             child: Text(repo.isLoading ? 'Reloading…' : 'Reload'),
           ),
+        ],
+        for (final section in widget.sections) ...[
+          const SizedBox(height: 32),
+          section,
         ],
         if (invalid.isNotEmpty) ...[
           const SizedBox(height: 32),
