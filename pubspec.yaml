@@ -9,3 +9,4 @@ workspace:
   - apps/queue
   - apps/calendar
   - apps/note
+  - apps/zero

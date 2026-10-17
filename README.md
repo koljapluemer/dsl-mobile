@@ -9,9 +9,10 @@ you pick. Targets Android (sideload) and Linux desktop.
 | queue | `apps/queue` | queue 🎲, `com.koljasam.dsl_queue` | Three random items from the whole folder, "Next" for others. Read-only. Settings hide items by type (primary keyword) or tag. |
 | calendar | `apps/calendar` | calendar 📆, `com.koljasam.dsl_calendar` | Items per day / per date range (`appointment`, `recurring`). Read-only. See [its data-format notes](apps/calendar/docs/data-format.md). |
 | note | `apps/note` | note 📝, `com.koljasam.dsl_note` | Add, edit and delete items as plain text, with highlighting and lint. |
+| zero | `apps/zero` | zero 0️⃣, `com.koljasam.dsl_zero` | Items tagged `zero` as colored cards, in a random order per session. Tapping a card greys it out until the app restarts. Read-only. |
 
 Each app is its own Flutter project with its own Android/Linux runner, so all
-three install side by side. They share `packages/dsl` through a
+four install side by side. They share `packages/dsl` through a
 [pub workspace](https://dart.dev/tools/pub/workspaces) (one `pubspec.lock` at
 the root).
 
@@ -50,7 +51,7 @@ again. Each app asks for the data folder once (stored per app).
 All apps start painting immediately and scan the folder in a background
 isolate. A rescan re-reads only files whose modification time or size changed.
 
-- **queue** and **calendar** keep the last scan in a cache file in app storage
+- **queue**, **calendar** and **zero** keep the last scan in a cache file in app storage
   (`items-cache.json`, raw text per file, reparsed with the current schema) and
   show it on start until the fresh scan lands. The refresh button rescans.
 - **note** keeps no cache. It opens on the Add screen while the folder loads.

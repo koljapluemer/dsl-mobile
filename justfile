@@ -1,4 +1,4 @@
-# Apps live in apps/<app>: queue, calendar, note.
+# Apps live in apps/<app>: queue, calendar, note, zero.
 
 default:
     @just --list
@@ -44,6 +44,7 @@ icons app:
         queue) emoji=🎲 ;;
         calendar) emoji=📆 ;;
         note) emoji=📝 ;;
+        zero) emoji=0️⃣ ;;
         *) echo "unknown app: {{app}}" >&2; exit 1 ;;
     esac
     uv run --project ../scripts ../scripts/emoji-icons/run.py "$emoji" apps/{{app}}/icons \
@@ -54,7 +55,7 @@ reinstall app:
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{app}}" in
-        queue|calendar|note) name={{app}} ;;
+        queue|calendar|note|zero) name={{app}} ;;
         *) echo "unknown app: {{app}}" >&2; exit 1 ;;
     esac
     id=com.koljasam.dsl_{{app}}

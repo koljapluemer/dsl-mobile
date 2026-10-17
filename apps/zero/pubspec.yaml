@@ -1,0 +1,25 @@
+name: dsl_zero
+description: "Read-only list of the items tagged zero."
+publish_to: 'none'
+version: 1.0.0
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dsl:
+    path: ../../packages/dsl
+  flutter_markdown_plus: ^1.0.12
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  path: ^1.9.1
+  shared_preferences: ^2.5.5
+
+flutter:
+  uses-material-design: true
